@@ -24,12 +24,12 @@ async def list_filings(
     return FilingList(
         filings=[
             Filing(
-                accession_number=f["ACCESSION_NUMBER"],
+                accession_number=f["SEC_DOCUMENT_ID"],
                 company_name=f["COMPANY_NAME"],
                 ticker=f["TICKER"],
-                form_type=f["FORM_TYPE"],
-                filing_date=f["FILING_DATE"],
-                document_url=f.get("DOCUMENT_URL")
+                form_type=f["DOCUMENT_TYPE"].replace(" Filing Text", ""),
+                filing_date=str(f["PERIOD_END_DATE"]),
+                document_url=None
             )
             for f in filings
         ],
@@ -50,11 +50,11 @@ async def get_filing_content(accession_number: str):
         )
 
     return FilingContent(
-        accession_number=filing["ACCESSION_NUMBER"],
+        accession_number=filing["SEC_DOCUMENT_ID"],
         company_name=filing["COMPANY_NAME"],
         ticker=filing["TICKER"],
-        form_type=filing["FORM_TYPE"],
-        filing_date=filing["FILING_DATE"],
+        form_type=filing["DOCUMENT_TYPE"].replace(" Filing Text", ""),
+        filing_date=str(filing["PERIOD_END_DATE"]),
         filing_text=filing.get("FILING_TEXT")
     )
 
@@ -80,7 +80,7 @@ async def get_filing_sections(
             {
                 "chunk_id": c["CHUNK_ID"],
                 "filing_type": c["FILING_TYPE"],
-                "filing_date": str(c["FILING_DATE"]),
+                "filing_date": str(c["PERIOD_END_DATE"]),
                 "section_name": c["SECTION_NAME"],
                 "chunk_text": c["CHUNK_TEXT"][:500] + "..." if len(c["CHUNK_TEXT"]) > 500 else c["CHUNK_TEXT"],
                 "chunk_index": c["CHUNK_INDEX"]
