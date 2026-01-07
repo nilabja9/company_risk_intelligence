@@ -186,9 +186,9 @@ class RiskAnalyzer:
         for assessment in assessments:
             query = f"""
             INSERT INTO {self.snowflake.app_db}.risk_assessments
-            (assessment_id, company_ticker, filing_date, risk_category,
+            (assessment_id, company_ticker, period_end_date, risk_category,
              risk_score, summary, evidence)
-            VALUES (%s, %s, %s, %s, %s, %s, PARSE_JSON(%s))
+            SELECT %s, %s, %s, %s, %s, %s, PARSE_JSON(%s)
             """
             try:
                 with self.snowflake.get_cursor(dict_cursor=False) as cursor:
@@ -229,7 +229,7 @@ class RiskAnalyzer:
             by_category[cat].append({
                 "score": a["RISK_SCORE"],
                 "summary": a["SUMMARY"],
-                "date": str(a["FILING_DATE"])
+                "date": str(a["PERIOD_END_DATE"])
             })
 
             if a["RISK_SCORE"] >= 70:
@@ -237,7 +237,7 @@ class RiskAnalyzer:
                     "category": cat,
                     "score": a["RISK_SCORE"],
                     "summary": a["SUMMARY"],
-                    "date": str(a["FILING_DATE"])
+                    "date": str(a["PERIOD_END_DATE"])
                 })
 
         # Calculate category averages
