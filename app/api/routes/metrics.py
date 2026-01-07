@@ -61,7 +61,7 @@ async def get_metric_history(ticker: str, metric_name: str):
         "metric_name": metric_name,
         "history": [
             {
-                "date": str(m["FILING_DATE"]),
+                "date": str(m["PERIOD_END_DATE"]),
                 "value": m["METRIC_VALUE"],
                 "filing_type": m["FILING_TYPE"],
                 "yoy_change": m["YOY_CHANGE"],

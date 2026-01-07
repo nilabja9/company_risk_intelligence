@@ -122,8 +122,8 @@ class ClaudeClient:
 
         Return as JSON: {{"metrics": {{"metric_name": {{"value": X, "period": "...", "source": "..."}}}}}}
 
-        Filing text:
-        {filing_text[:10000]}
+        Filing text (Financial Statements section):
+        {filing_text[:50000]}
         """
 
         response = self.generate(prompt, system=system, temperature=0.1)

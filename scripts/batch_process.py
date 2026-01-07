@@ -120,7 +120,7 @@ def extract_metrics():
     snowflake = get_snowflake_client()
     metrics_engine = get_metrics_engine()
 
-    log("Starting metrics extraction...")
+    log("Starting metrics extraction using FINANCIAL_STATEMENTS chunks...")
 
     # Get target companies
     companies = snowflake.get_companies()
@@ -136,20 +136,36 @@ def extract_metrics():
 
         for filing in filings:
             sec_doc_id = filing["SEC_DOCUMENT_ID"]
+            filing_date = str(filing["PERIOD_END_DATE"])
 
-            # Get filing content
-            content = snowflake.get_filing_content(sec_doc_id)
-            if not content or not content.get("FILING_TEXT"):
+            # Get FINANCIAL_STATEMENTS chunks for this filing from our chunks table
+            with snowflake.get_cursor() as cursor:
+                cursor.execute(f"""
+                    SELECT chunk_text
+                    FROM {snowflake.app_db}.document_chunks
+                    WHERE company_ticker = %s
+                    AND section_name = 'FINANCIAL_STATEMENTS'
+                    AND chunk_id LIKE %s
+                    ORDER BY chunk_index
+                    LIMIT 10
+                """, (ticker, f"{sec_doc_id}%"))
+                chunks = cursor.fetchall()
+
+            if not chunks:
+                log(f"  Skipping {sec_doc_id} - no FINANCIAL_STATEMENTS chunks")
                 continue
 
+            # Combine chunks into financial text (up to ~50K chars for Claude)
+            financial_text = "\n\n".join([c["CHUNK_TEXT"] for c in chunks])[:50000]
+
             try:
-                # Extract and store metrics
+                # Extract and store metrics using financial statements text
                 metrics = metrics_engine.process_filing_metrics(
-                    filing_text=content["FILING_TEXT"],
+                    filing_text=financial_text,
                     company_ticker=ticker,
                     company_name=company_name,
                     filing_type="10-K",
-                    filing_date=str(content["PERIOD_END_DATE"])
+                    filing_date=filing_date
                 )
 
                 stored = metrics_engine.store_metrics(metrics)

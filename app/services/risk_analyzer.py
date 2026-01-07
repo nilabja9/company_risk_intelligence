@@ -184,8 +184,8 @@ class RiskAnalyzer:
     def store_assessments(self, assessments: list[RiskAssessment]) -> int:
         stored = 0
         for assessment in assessments:
-            query = """
-            INSERT INTO risk_assessments
+            query = f"""
+            INSERT INTO {self.snowflake.app_db}.risk_assessments
             (assessment_id, company_ticker, filing_date, risk_category,
              risk_score, summary, evidence)
             VALUES (%s, %s, %s, %s, %s, %s, PARSE_JSON(%s))

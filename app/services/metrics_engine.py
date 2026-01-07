@@ -241,12 +241,12 @@ class MetricsEngine:
         ticker: str,
         current_date: str
     ) -> dict | None:
-        query = """
+        query = f"""
         SELECT metric_name, metric_value
-        FROM financial_metrics
+        FROM {self.snowflake.app_db}.financial_metrics
         WHERE company_ticker = %s
-        AND filing_date < %s
-        ORDER BY filing_date DESC
+        AND period_end_date < %s
+        ORDER BY period_end_date DESC
         """
         results = self.snowflake.execute_query(query % (f"'{ticker}'", f"'{current_date}'"))
 
@@ -258,8 +258,8 @@ class MetricsEngine:
     def store_metrics(self, metrics: list[FinancialMetric]) -> int:
         stored = 0
         for metric in metrics:
-            query = """
-            MERGE INTO financial_metrics AS target
+            query = f"""
+            MERGE INTO {self.snowflake.app_db}.financial_metrics AS target
             USING (SELECT %s AS metric_id) AS source
             ON target.metric_id = source.metric_id
             WHEN MATCHED THEN UPDATE SET
@@ -267,7 +267,7 @@ class MetricsEngine:
                 yoy_change = %s,
                 is_anomaly = %s
             WHEN NOT MATCHED THEN INSERT
-                (metric_id, company_ticker, filing_type, filing_date,
+                (metric_id, company_ticker, filing_type, period_end_date,
                  metric_name, metric_value, metric_unit, yoy_change, is_anomaly, metadata)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, PARSE_JSON(%s))
             """
@@ -311,14 +311,14 @@ class MetricsEngine:
                 latest_metrics[name] = {
                     "value": m["METRIC_VALUE"],
                     "unit": m["METRIC_UNIT"],
-                    "date": str(m["FILING_DATE"]),
+                    "date": str(m["PERIOD_END_DATE"]),
                     "yoy_change": m["YOY_CHANGE"]
                 }
                 if m["IS_ANOMALY"]:
                     anomalies.append({
                         "metric": name,
                         "value": m["METRIC_VALUE"],
-                        "date": str(m["FILING_DATE"])
+                        "date": str(m["PERIOD_END_DATE"])
                     })
 
         return {
